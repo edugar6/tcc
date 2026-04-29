@@ -1,8 +1,7 @@
 ##---------------
 rm(list = ls())
 
-current_working_dir = dirname(rstudioapi::getSourceEditorContext()$path)
-setwd(current_working_dir)
+setwd("C:\\Users\\egarc\\OneDrive\\Documentos\\Edu\\IA\\tcc\\MS_VAR_hierachical")
 
 # =============================================================================
 # simulation_example.R
