@@ -1,0 +1,597 @@
+starting worker pid=31200 on localhost:11005 at 15:54:23.641
+starting worker pid=1836 on localhost:11005 at 15:54:23.755
+starting worker pid=20712 on localhost:11005 at 15:54:23.859
+starting worker pid=14608 on localhost:11005 at 15:54:23.965
+starting worker pid=12068 on localhost:11005 at 15:54:24.077
+starting worker pid=13016 on localhost:11005 at 15:54:24.193
+starting worker pid=11356 on localhost:11005 at 15:54:24.305
+starting worker pid=29864 on localhost:11005 at 15:54:24.410
+starting worker pid=4640 on localhost:11005 at 15:54:24.514
+starting worker pid=25996 on localhost:11005 at 15:54:24.626
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+
+Attaching package: 'igraph'
+
+The following object is masked from 'package:base':
+
+    union
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+starting worker pid=23816 on localhost:11005 at 15:55:50.572
+Carregando pacotes exigidos: stats4
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+starting worker pid=12412 on localhost:11005 at 15:59:22.998
+starting worker pid=10492 on localhost:11005 at 15:59:23.122
+starting worker pid=22476 on localhost:11005 at 15:59:23.236
+starting worker pid=22016 on localhost:11005 at 15:59:23.341
+starting worker pid=14520 on localhost:11005 at 15:59:23.447
+starting worker pid=30772 on localhost:11005 at 15:59:23.555
+starting worker pid=30572 on localhost:11005 at 15:59:23.661
+starting worker pid=9228 on localhost:11005 at 15:59:23.773
+starting worker pid=21212 on localhost:11005 at 15:59:23.876
+starting worker pid=17188 on localhost:11005 at 15:59:23.982
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+
+Attaching package: 'sn'
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+ose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+Carregando pacotes exigidos: stats4
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+Carregando pacotes exigidos: stats4
+
+Attaching package: 'igraph'
+
+Carregando pacotes exigidos: stats4
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+Carregando pacotes exigidos: stats4
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'sn'
+
+
+Attaching package: 'sn'
+
+The following object is masked from 'package:stats':
+
+    sd
+
+The following object is masked from 'package:stats':
+
+    sd
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'igraph'
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+
+Attaching package: 'igraph'
+
+The following object is masked from 'package:base':
+
+    union
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+The following object is masked from 'package:utils':
+
+    combn
+
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' was built under R version 4.3.3 
+Warning message:
+package 'igraph' wWarning message:
+as built under Warning message:
+package 'igraph' was built under R version 4.3.3 
+package 'igraph' was built under R version 4.3.3 
+package 'igraph' was built under R version 4.3.3 

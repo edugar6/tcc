@@ -1,0 +1,512 @@
+c_scale[t, s] <- cs;     alpha[t, s, ] <- alpha[t, s, ] / cs
+}
+}
+}
+# Backward t = T
+beta[T, , ] <- 1
+# Backward t = T-1,...,1
+for (t in (T-1):1) {
+for (s in 1:S) {
+P_t1 <- transition_probs(y[t], gamma0[s,,], gamma1[s,,], K)
+for (k in 1:K) {
+beta[t, s, k] <- sum(
+P_t1[k, ] * gaussian_density(y[t+1], mu, sigma2) * beta[t+1, s, ]
+)
+}
+bs <- sum(beta[t, s, ])
+if (!is.finite(bs) || bs <= 0) {
+beta[t, s, ] <- rep(1/K, K)
+} else {
+beta[t, s, ] <- beta[t, s, ] / bs
+}
+}
+}
+# Verossimilhança marginal por classe
+iw <- numeric(S)
+for (s in 1:S) {
+log_scale_sum <- sum(log(pmax(c_scale[, s], 1e-300)))
+ab_sum        <- sum(alpha[T, s, ] * beta[T, s, ])
+val           <- pi_w[s] * exp(log_scale_sum) * ab_sum
+iw[s]         <- ifelse(is.finite(val) && val > 0, val, 0)
+}
+fy <- sum(iw)
+if (!is.finite(fy) || fy <= 0) fy <- 1e-300
+# Posteriors
+post_w <- iw / fy
+post_w[!is.finite(post_w)] <- 1/S
+post_wzt <- array(0, dim = c(T, S, K))
+for (t in 1:T) {
+for (s in 1:S) {
+ab    <- alpha[t, s, ] * beta[t, s, ]
+denom <- sum(ab)
+if (!is.finite(denom) || denom <= 0) {
+post_wzt[t, s, ] <- (iw[s] / fy) * rep(1/K, K)
+} else {
+post_wzt[t, s, ] <- (iw[s] / fy) * ab / denom
+}
+}
+}
+post_wzt1zt <- array(0, dim = c(T-1, S, K, K))
+for (t in 1:(T-1)) {
+for (s in 1:S) {
+P_t1  <- transition_probs(y[t], gamma0[s,,], gamma1[s,,], K)
+denom <- sum(alpha[t, s, ] * beta[t, s, ])
+if (!is.finite(denom) || denom <= 0) next
+for (j in 1:K) {
+for (k in 1:K) {
+val <- (iw[s] / fy) * alpha[t, s, j] * P_t1[j, k] *
+gaussian_density(y[t+1], mu[k], sigma2[k]) *
+beta[t+1, s, k] / denom
+post_wzt1zt[t, s, j, k] <- ifelse(is.finite(val), val, 0)
+}
+}
+}
+}
+log_lik <- log(fy) + sum(log(pmax(c_scale, 1e-300)))
+return(list(
+alpha = alpha, beta = beta,
+post_w = post_w, post_wzt = post_wzt,
+post_wzt1zt = post_wzt1zt,
+log_lik = log_lik
+))
+}
+# =============================================================================
+# 3. M-STEP
+# =============================================================================
+mstep_mghmm <- function(y_list, S, K, fb_list) {
+n <- length(y_list)
+T <- length(y_list[[1]])
+# pi_w
+post_w_mat <- do.call(rbind, lapply(fb_list, function(fb) fb$post_w))
+pi_w_new   <- colMeans(post_w_mat)
+pi_w_new   <- pmax(pi_w_new, 1e-10)
+pi_w_new   <- pi_w_new / sum(pi_w_new)
+# delta_w
+delta_w_new <- matrix(0, S, K)
+for (s in 1:S) {
+d <- colMeans(do.call(rbind,
+lapply(fb_list, function(fb) fb$post_wzt[1, s, ])))
+d <- pmax(d, 1e-10)
+delta_w_new[s, ] <- d / sum(d)
+}
+# mu e sigma2
+mu_new     <- numeric(K)
+sigma2_new <- numeric(K)
+all_y      <- unlist(y_list)
+for (k in 1:K) {
+w_k <- numeric(n * T)
+idx <- 1
+for (i in 1:n) {
+w_k[idx:(idx+T-1)] <- rowSums(
+matrix(fb_list[[i]]$post_wzt[, , k], T, S))
+idx <- idx + T
+}
+w_k <- pmax(w_k, 0)
+sw  <- sum(w_k)
+if (sw < 1e-10) {
+mu_new[k] <- 0; sigma2_new[k] <- 1
+} else {
+mu_new[k]     <- sum(w_k * all_y) / sw
+sigma2_new[k] <- max(sum(w_k * (all_y - mu_new[k])^2) / sw, 1e-8)
+}
+}
+# gamma0 e gamma1 via optim
+gamma0_new <- array(0, dim = c(S, K, K))
+gamma1_new <- array(0, dim = c(S, K, K))
+if (K > 1) {
+for (s in 1:S) {
+for (j in 1:K) {
+w_agg  <- matrix(0, T-1, K)
+yp_agg <- y_list[[1]][1:(T-1)]
+for (i in 1:n) {
+w_agg <- w_agg +
+matrix(fb_list[[i]]$post_wzt1zt[, s, j, ], T-1, K)
+}
+w_j <- rowSums(w_agg)
+if (sum(w_j) < 1e-10) next
+p_obs <- w_agg / pmax(w_j, 1e-15)
+obj_fn <- function(params) {
+g0  <- c(params[1:(K-1)], 0)
+g1  <- c(params[K:(2*(K-1))], 0)
+ll  <- 0
+for (t in seq_len(T-1)) {
+if (w_j[t] < 1e-15) next
+eta <- g0 + g1 * yp_agg[t]
+eta <- eta - max(eta)
+lp  <- eta - log(sum(exp(eta)))
+ll  <- ll - w_j[t] * sum(p_obs[t, ] * lp)
+}
+if (!is.finite(ll)) ll <- 1e10
+return(ll)
+}
+init <- rep(0, 2*(K-1))
+opt  <- tryCatch(
+optim(init, obj_fn, method = "BFGS",
+control = list(maxit = 100, reltol = 1e-6)),
+error = function(e) list(par = init)
+)
+gamma0_new[s, j, 1:(K-1)] <- opt$par[1:(K-1)]
+gamma1_new[s, j, 1:(K-1)] <- opt$par[K:(2*(K-1))]
+}
+}
+}
+return(list(pi_w = pi_w_new, delta_w = delta_w_new,
+gamma0 = gamma0_new, gamma1 = gamma1_new,
+mu = mu_new, sigma2 = sigma2_new))
+}
+# =============================================================================
+# 4. EM COMPLETO
+# =============================================================================
+fit_mghmm <- function(y_list, S = 2, K = 3,
+max_iter = 200, tol = 1e-5,
+n_init = 10, verbose = TRUE) {
+n       <- length(y_list)
+best_ll <- -Inf
+best_params <- NULL
+for (init_run in 1:n_init) {
+if (verbose) cat("Inicialização", init_run, "de", n_init, "\n")
+set.seed(init_run * 42)
+pi_w    <- rep(1/S, S)
+delta_w <- matrix(1/K, S, K)
+mu      <- sort(rnorm(K, 0, 1))
+sigma2  <- runif(K, 0.5, 3)
+gamma0  <- array(rnorm(S*K*K, 0, 0.1),  dim = c(S, K, K))
+gamma1  <- array(rnorm(S*K*K, 0, 0.01), dim = c(S, K, K))
+gamma0[,,K] <- 0; gamma1[,,K] <- 0
+ll_prev <- -Inf
+ll_curr <- -Inf
+for (iter in 1:max_iter) {
+all_fb <- lapply(y_list, function(y) {
+forward_backward_mghmm(y, S, K, pi_w, delta_w,
+gamma0, gamma1, mu, sigma2)
+})
+ll_curr <- sum(sapply(all_fb, function(fb) fb$log_lik))
+if (!is.finite(ll_curr)) {
+if (verbose) cat("  LL não finito, abortando inicialização\n")
+ll_curr <- -Inf
+break
+}
+if (verbose && iter %% 10 == 0)
+cat("  Iter", iter, "| LL =", round(ll_curr, 4), "\n")
+if (is.finite(ll_prev) && abs(ll_curr - ll_prev) < tol) {
+if (verbose) cat("  Convergiu na iteração", iter, "\n")
+break
+}
+ll_prev <- ll_curr
+params_new <- mstep_mghmm(y_list, S, K, all_fb)
+pi_w    <- params_new$pi_w
+delta_w <- params_new$delta_w
+mu      <- params_new$mu
+sigma2  <- params_new$sigma2
+gamma0  <- params_new$gamma0
+gamma1  <- params_new$gamma1
+}
+if (is.finite(ll_curr) && ll_curr > best_ll) {
+best_ll  <- ll_curr
+N_params <- (S-1) + S*(K-1) + 2*S*K*(K-1) + 2*K
+best_params <- list(
+pi_w     = pi_w,
+delta_w  = delta_w,
+gamma0   = gamma0,
+gamma1   = gamma1,
+mu       = mu,
+sigma2   = sigma2,
+log_lik  = ll_curr,
+n_iter   = iter,
+n_params = N_params,
+BIC      = -2 * ll_curr + N_params * log(n),
+S        = S,
+K        = K,
+all_fb   = all_fb
+)
+}
+}
+if (is.null(best_params)) stop("Nenhuma inicialização convergiu.")
+return(best_params)
+}
+# =============================================================================
+# 5. SELEÇÃO DE MODELO VIA BIC
+# =============================================================================
+select_model_mghmm <- function(y_list, S_range = 1:2, K_range = 2:3,
+n_init = 5, verbose = FALSE) {
+results <- data.frame()
+for (S in S_range) {
+for (K in K_range) {
+cat("Ajustando S =", S, "| K =", K, "...\n")
+fit <- tryCatch(
+fit_mghmm(y_list, S = S, K = K,
+n_init = n_init, verbose = verbose),
+error = function(e) { cat("  Erro:", e$message, "\n"); NULL }
+)
+if (!is.null(fit)) {
+results <- rbind(results, data.frame(
+S        = S,
+K        = K,
+LogLik   = fit$log_lik,
+n_params = fit$n_params,
+BIC      = fit$BIC
+))
+}
+}
+}
+results[order(results$BIC), ]
+}
+# =============================================================================
+# 6. PREVISÃO 1-PASSO-À-FRENTE
+# =============================================================================
+predict_mghmm <- function(y, params, class_idx = NULL) {
+S <- params$S
+K <- params$K
+T <- length(y)
+if (is.null(class_idx)) {
+fb        <- forward_backward_mghmm(y, S, K, params$pi_w, params$delta_w,
+params$gamma0, params$gamma1,
+params$mu, params$sigma2)
+class_idx <- which.max(fb$post_w)
+}
+e        <- params$delta_w[class_idx, ]
+y_hat    <- numeric(T)
+y_hat[1] <- sum(e * params$mu)
+for (t in 2:T) {
+P_t      <- transition_probs(y[t-1], params$gamma0[class_idx,,],
+params$gamma1[class_idx,,], K)
+e        <- e %*% P_t
+y_hat[t] <- sum(e * params$mu)
+}
+return(y_hat)
+}
+# =============================================================================
+# 7. SINCRONIZAÇÃO ENTRE MERCADOS
+# =============================================================================
+compute_synchronization <- function(fb_list, series_names = NULL,
+regime_k = 1) {
+n        <- length(fb_list)
+T        <- dim(fb_list[[1]]$post_wzt)[1]
+S        <- dim(fb_list[[1]]$post_wzt)[2]
+K        <- dim(fb_list[[1]]$post_wzt)[3]
+regime_k <- min(regime_k, K)
+build_prob_mat <- function(rk) {
+pm <- matrix(0, T, n)
+for (i in 1:n) {
+p          <- rowSums(matrix(fb_list[[i]]$post_wzt[, , rk], T, S))
+p          <- pmin(pmax(p, 1e-6), 1 - 1e-6)
+pm[, i]    <- log(p / (1 - p))
+}
+pm
+}
+prob_mat <- build_prob_mat(regime_k)
+sd_cols  <- apply(prob_mat, 2, sd)
+ok       <- is.finite(sd_cols) & sd_cols > 1e-8
+# Se menos de 2 séries variam, tentar o regime de maior ocupação média
+if (sum(ok) < 2) {
+avg_occ  <- sapply(1:K, function(k)
+mean(sapply(fb_list, function(fb)
+mean(rowSums(matrix(fb$post_wzt[,,k], T, S))))))
+regime_k <- which.max(avg_occ)
+message("Regime ", regime_k,
+" usado para sincronização (maior ocupação média = ",
+round(avg_occ[regime_k], 3), ")")
+prob_mat <- build_prob_mat(regime_k)
+sd_cols  <- apply(prob_mat, 2, sd)
+ok       <- is.finite(sd_cols) & sd_cols > 1e-8
+}
+sync <- matrix(NA, n, n)
+diag(sync) <- 1
+if (!is.null(series_names)) rownames(sync) <- colnames(sync) <- series_names
+if (sum(ok) >= 2) {
+sync_sub       <- cor(prob_mat[, ok, drop = FALSE], use = "complete.obs")
+sync[ok, ok]   <- sync_sub
+} else {
+warning("Nenhum regime apresenta variação suficiente para calcular sincronização.")
+}
+return(sync)
+}
+# =============================================================================
+# 8. VISUALIZAÇÕES
+# =============================================================================
+plot_regimes <- function(y, fb, series_name = "Série", K = NULL) {
+T  <- length(y)
+S  <- dim(fb$post_wzt)[2]
+if (is.null(K)) K <- dim(fb$post_wzt)[3]
+cores <- c("firebrick","steelblue","darkgreen","orange","purple")[1:K]
+# Probabilidade posterior marginalizada
+post_df <- as.data.frame(
+t(sapply(1:T, function(t)
+colSums(matrix(fb$post_wzt[t,,], S, K)))))
+colnames(post_df) <- paste0("Regime_", 1:K)
+post_df$t <- 1:T
+post_long <- melt(post_df, id.vars = "t",
+variable.name = "Regime",
+value.name    = "Probabilidade")
+# Regime modal
+modal <- apply(post_df[, 1:K], 1, which.max)
+p1 <- ggplot(data.frame(t = 1:T, retorno = y, regime = factor(modal)),
+aes(x = t, y = retorno, color = regime)) +
+geom_line(linewidth = 0.35) +
+scale_color_manual(values = cores,
+labels = paste("Regime", 1:K)) +
+labs(title  = paste("Retornos e Regimes –", series_name),
+x = "Tempo", y = "Retorno (%)", color = NULL) +
+theme_minimal(base_size = 11)
+p2 <- ggplot(post_long, aes(x = t, y = Probabilidade, fill = Regime)) +
+geom_area(alpha = 0.75, position = "identity") +
+scale_fill_manual(values = cores) +
+labs(title = paste("Probabilidades Posteriores –", series_name),
+x = "Tempo", y = "Probabilidade", fill = NULL) +
+theme_minimal(base_size = 11)
+grid.arrange(p1, p2, ncol = 1)
+}
+plot_transition_probs <- function(params, class_idx = 1) {
+S      <- params$S
+K      <- params$K
+y_grid <- seq(-10, 10, length.out = 300)
+cores  <- c("firebrick","steelblue","darkgreen","orange","purple")[1:K]
+df_all <- do.call(rbind, lapply(1:K, function(j) {
+do.call(rbind, lapply(1:K, function(k) {
+probs <- sapply(y_grid, function(yp) {
+transition_probs(yp, params$gamma0[class_idx,,],
+params$gamma1[class_idx,,], K)[j, k]
+})
+data.frame(y_prev = y_grid, prob = probs,
+from = paste("De Regime", j),
+to   = paste("Para Regime", k))
+}))
+}))
+ggplot(df_all, aes(x = y_prev, y = prob, color = to)) +
+geom_line(linewidth = 0.8) +
+facet_wrap(~ from, ncol = K) +
+scale_color_manual(values = cores) +
+labs(title  = paste("Probabilidades de Transição – Classe", class_idx),
+x = expression(y[t-1]), y = "Probabilidade", color = NULL) +
+theme_minimal(base_size = 11)
+}
+plot_bic <- function(model_sel) {
+ggplot(model_sel,
+aes(x = factor(K), y = BIC,
+group = factor(S), color = factor(S))) +
+geom_line(linewidth = 1) +
+geom_point(size = 3) +
+labs(title  = "Seleção de Modelo via BIC",
+x      = "Número de Regimes (K)",
+y      = "BIC",
+color  = "Classes (S)") +
+theme_minimal(base_size = 11)
+}
+plot_sync <- function(sync_matrix) {
+df <- melt(sync_matrix, na.rm = TRUE)
+ggplot(df, aes(x = Var1, y = Var2, fill = value)) +
+geom_tile(color = "white") +
+geom_text(aes(label = round(value, 2)), size = 3.5) +
+scale_fill_gradient2(low = "steelblue", mid = "white", high = "firebrick",
+midpoint = 0, limits = c(-1, 1)) +
+labs(title = "Sincronização entre Mercados",
+x = NULL, y = NULL, fill = "Correlação") +
+theme_minimal(base_size = 11) +
+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+# =============================================================================
+# 9. EXEMPLO DE USO
+# =============================================================================
+run_example <- function() {
+cat("=== Baixando dados ===\n")
+tickers   <- c("^GSPC", "^FTSE", "^GDAXI", "^FCHI", "^IBEX")
+names_idx <- c("SP500", "FTSE",  "DAX",    "CAC40", "IBEX")
+y_list <- list()
+for (i in seq_along(tickers)) {
+tryCatch({
+raw <- getSymbols(tickers[i], src = "yahoo",
+from = "2010-01-01", to = "2023-12-31",
+auto.assign = FALSE)
+raw  <- na.approx(raw,  na.rm = FALSE)   # interpola NAs no xts
+px   <- as.numeric(Ad(raw))
+px   <- as.numeric(na.approx(px, na.rm = FALSE))
+px   <- na.omit(px)
+ret  <- 100 * diff(log(px))
+ret  <- as.numeric(na.omit(ret))
+stopifnot(all(is.finite(ret)), length(ret) > 100)
+y_list[[names_idx[i]]] <- ret
+cat("  Carregado:", names_idx[i], "| T =", length(ret), "\n")
+}, error = function(e)
+cat("  Erro:", tickers[i], "-", e$message, "\n"))
+}
+# Alinhar pelo comprimento mínimo
+T_min  <- min(sapply(y_list, length))
+y_list <- lapply(y_list, function(y) tail(y, T_min))
+cat("Comprimento alinhado: T =", T_min, "\n\n")
+# ── Seleção de modelo ──────────────────────────────────────────────────────
+cat("=== Seleção de modelo (S=1:2, K=2:3) ===\n")
+model_sel <- select_model_mghmm(y_list, S_range = 1:2, K_range = 2:3,
+n_init = 3, verbose = FALSE)
+print(model_sel)
+print(plot_bic(model_sel))
+best_S <- model_sel$S[1]
+best_K <- model_sel$K[1]
+cat("\nMelhor modelo: S =", best_S, "| K =", best_K,
+"| BIC =", round(model_sel$BIC[1], 2), "\n\n")
+# ── Estimação final ────────────────────────────────────────────────────────
+cat("=== Estimando modelo final (n_init = 10) ===\n")
+fit <- fit_mghmm(y_list, S = best_S, K = best_K,
+n_init = 10, verbose = TRUE)
+cat("\n=== Parâmetros estimados ===\n")
+cat("Médias por regime (mu):        ", round(fit$mu, 4), "\n")
+cat("Variâncias por regime (sigma2):", round(fit$sigma2, 4), "\n")
+cat("Tamanhos das classes (pi_w):   ", round(fit$pi_w, 4), "\n")
+cat("Log-verossimilhança:           ", round(fit$log_lik, 2), "\n")
+cat("Nº parâmetros:                 ", fit$n_params, "\n")
+cat("BIC:                           ", round(fit$BIC, 2), "\n")
+# ── Diagnóstico de ocupação ────────────────────────────────────────────────
+cat("\n=== Ocupação média por regime ===\n")
+occ <- sapply(1:best_K, function(k)
+mean(sapply(fit$all_fb, function(fb) {
+T_ <- dim(fb$post_wzt)[1]
+S_ <- dim(fb$post_wzt)[2]
+mean(rowSums(matrix(fb$post_wzt[,,k], T_, S_)))
+})))
+names(occ) <- paste("Regime", 1:best_K)
+print(round(occ, 4))
+# Identificar regime bear (menor média) e bull (maior média)
+regime_bear <- which.min(fit$mu)
+regime_bull <- which.max(fit$mu)
+cat("Regime bear: Regime", regime_bear, "(mu =", round(fit$mu[regime_bear], 4), ")\n")
+cat("Regime bull: Regime", regime_bull, "(mu =", round(fit$mu[regime_bull], 4), ")\n")
+# ── Visualizações ──────────────────────────────────────────────────────────
+plot_regimes(y_list[[1]], fit$all_fb[[1]],
+series_name = names(y_list)[1], K = best_K)
+if (best_S >= 1)
+print(plot_transition_probs(fit, class_idx = 1))
+if (best_S >= 2)
+print(plot_transition_probs(fit, class_idx = 2))
+# ── Sincronização ──────────────────────────────────────────────────────────
+sync <- compute_synchronization(fit$all_fb,
+series_names = names(y_list),
+regime_k     = regime_bear)
+cat("\n=== Matriz de Sincronização (Regime Bear) ===\n")
+print(round(sync, 3))
+print(plot_sync(sync))
+# ── Previsão ───────────────────────────────────────────────────────────────
+y_hat <- predict_mghmm(y_list[[1]], fit)
+rmse  <- sqrt(mean((y_list[[1]] - y_hat)^2))
+mae   <- mean(abs(y_list[[1]] - y_hat))
+cat("\nPrevisão 1-passo (", names(y_list)[1], "):\n")
+cat("  RMSE:", round(rmse, 4), "\n")
+cat("  MAE: ", round(mae,  4), "\n")
+# ── Classes posteriores por série ──────────────────────────────────────────
+if (best_S > 1) {
+cat("\n=== Classe modal por série ===\n")
+for (i in seq_along(y_list)) {
+cls <- which.max(fit$all_fb[[i]]$post_w)
+prb <- round(fit$all_fb[[i]]$post_w, 3)
+cat(" ", names(y_list)[i], "-> Classe", cls,
+"| P(w) =", prb, "\n")
+}
+}
+return(list(fit       = fit,
+model_sel = model_sel,
+sync      = sync,
+y_hat     = y_hat))
+}
+# =============================================================================
+# EXECUTAR
+# =============================================================================
+result <- run_example()
+source("C:/Users/cleit/Dropbox/TCC Eduardo/Códigos/MS-VAR Hierq/simulation_example_2.R")
