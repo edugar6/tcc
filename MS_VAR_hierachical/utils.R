@@ -372,7 +372,7 @@ em_msvar <- function(Y,
                      M          = 2,
                      max_iter   = 100,
                      tol        = 1e-5,
-                     P_zeros    = list(c(1, 3), c(3, 1)),
+                     P_zeros    = NULL,
                      init       = NULL,
                      verbose    = TRUE) {
   TT <- nrow(Y)
@@ -383,8 +383,6 @@ em_msvar <- function(Y,
     set.seed(42)
     
     P_trans <- matrix(1 / K, K, K)
-    for (idx in P_zeros) P_trans[idx[1], idx[2]] <- 0
-    P_trans <- P_trans / rowSums(P_trans)
     
     pi0 <- rep(1 / K, K)
     
